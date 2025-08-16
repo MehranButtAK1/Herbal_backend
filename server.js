@@ -1,100 +1,82 @@
 const express = require("express");
-const fs = require("fs-extra");
-const path = require("path");
-const bodyParser = require("body-parser");
+const fs = require("fs");
 const cors = require("cors");
+require("dotenv").config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
-const ADMIN_SECRET = process.env.ADMIN_SECRET || "123"; // 🔑 ENV VAR from Railway
+const PORT = process.env.PORT || 8080;
 
-const dataFile = path.join(__dirname, "data.json");
-
+// Middleware (fix payload too large error)
 app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-// 📂 Helper: Read JSON file
-async function readData() {
-  try {
-    const data = await fs.readFile(dataFile, "utf-8");
-    return JSON.parse(data);
-  } catch (err) {
-    return { products: [] };
-  }
+// JSON file for products storage
+const DATA_FILE = "products.json";
+
+// 🔹 Utility function: read products
+function readData() {
+  if (!fs.existsSync(DATA_FILE)) return [];
+  return JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
 }
 
-// 📂 Helper: Save JSON file
-async function saveData(data) {
-  await fs.writeFile(dataFile, JSON.stringify(data, null, 2));
+// 🔹 Utility function: write products
+function writeData(data) {
+  fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
 }
 
-// ✅ Get all products
-app.get("/api/products", async (req, res) => {
-  const db = await readData();
-  res.json(db.products);
+// ✅ Root Route
+app.get("/", (req, res) => {
+  res.send("🚀 Herbal Store Backend is Running...");
 });
 
-// ✅ Add product
-app.post("/api/products", async (req, res) => {
-  if (req.headers["x-admin-secret"] !== ADMIN_SECRET) {
+// ✅ Health Check
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok" });
+});
+
+// ✅ Get all products
+app.get("/api/products", (req, res) => {
+  res.json(readData());
+});
+
+// ✅ Add new product (Admin only)
+app.post("/api/products", (req, res) => {
+  if (req.query.secret !== process.env.ADMIN_SECRET) {
     return res.status(403).json({ error: "Unauthorized" });
   }
-
-  const { name, category, price, image } = req.body;
-  if (!name) return res.status(400).json({ error: "Name required" });
-
-  const db = await readData();
-  const newProduct = {
-    id: Date.now(),
-    name,
-    category,
-    price,
-    image,
-  };
-  db.products.push(newProduct);
-  await saveData(db);
-
+  const products = readData();
+  const newProduct = { id: Date.now(), ...req.body };
+  products.push(newProduct);
+  writeData(products);
   res.json(newProduct);
 });
 
-// ✅ Update product
-app.put("/api/products/:id", async (req, res) => {
-  if (req.headers["x-admin-secret"] !== ADMIN_SECRET) {
+// ✅ Update product (Admin only)
+app.put("/api/products/:id", (req, res) => {
+  if (req.query.secret !== process.env.ADMIN_SECRET) {
     return res.status(403).json({ error: "Unauthorized" });
   }
-
-  const db = await readData();
-  const id = parseInt(req.params.id);
-  const productIndex = db.products.findIndex(p => p.id === id);
-
-  if (productIndex === -1) return res.status(404).json({ error: "Not found" });
-
-  db.products[productIndex] = { ...db.products[productIndex], ...req.body };
-  await saveData(db);
-
-  res.json(db.products[productIndex]);
+  let products = readData();
+  const index = products.findIndex(p => p.id == req.params.id);
+  if (index === -1) return res.status(404).json({ error: "Product not found" });
+  products[index] = { ...products[index], ...req.body };
+  writeData(products);
+  res.json(products[index]);
 });
 
-// ✅ Delete product
-app.delete("/api/products/:id", async (req, res) => {
-  if (req.headers["x-admin-secret"] !== ADMIN_SECRET) {
+// ✅ Delete product (Admin only)
+app.delete("/api/products/:id", (req, res) => {
+  if (req.query.secret !== process.env.ADMIN_SECRET) {
     return res.status(403).json({ error: "Unauthorized" });
   }
-
-  const db = await readData();
-  const id = parseInt(req.params.id);
-  const filtered = db.products.filter(p => p.id !== id);
-
-  if (db.products.length === filtered.length) {
-    return res.status(404).json({ error: "Not found" });
-  }
-
-  db.products = filtered;
-  await saveData(db);
-
+  let products = readData();
+  products = products.filter(p => p.id != req.params.id);
+  writeData(products);
   res.json({ success: true });
 });
 
+// ✅ Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
