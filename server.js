@@ -1,82 +1,74 @@
 const express = require("express");
-const fs = require("fs");
 const cors = require("cors");
-require("dotenv").config();
+const fs = require("fs");
+const path = require("path");
 
 const app = express();
 const PORT = process.env.PORT || 8080;
+const ADMIN_SECRET = process.env.ADMIN_SECRET || "123";
 
-// Middleware (fix payload too large error)
+// Middleware
 app.use(cors());
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(express.json({ limit: "10mb" })); // allow large payloads (images etc.)
 
-// JSON file for products storage
-const DATA_FILE = "products.json";
+// Path to products.json
+const dataFile = path.join(__dirname, "products.json");
 
-// 🔹 Utility function: read products
-function readData() {
-  if (!fs.existsSync(DATA_FILE)) return [];
-  return JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
+// Utility: read + write
+function readProducts() {
+  if (!fs.existsSync(dataFile)) {
+    fs.writeFileSync(dataFile, JSON.stringify([]));
+  }
+  return JSON.parse(fs.readFileSync(dataFile));
 }
 
-// 🔹 Utility function: write products
-function writeData(data) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+function writeProducts(products) {
+  fs.writeFileSync(dataFile, JSON.stringify(products, null, 2));
 }
 
-// ✅ Root Route
-app.get("/", (req, res) => {
-  res.send("🚀 Herbal Store Backend is Running...");
-});
+// Routes
 
-// ✅ Health Check
-app.get("/api/health", (req, res) => {
-  res.json({ status: "ok" });
-});
-
-// ✅ Get all products
+// 1. Get all products
 app.get("/api/products", (req, res) => {
-  res.json(readData());
+  res.json(readProducts());
 });
 
-// ✅ Add new product (Admin only)
+// 2. Add new product (Admin only)
 app.post("/api/products", (req, res) => {
-  if (req.query.secret !== process.env.ADMIN_SECRET) {
+  const { secret, product } = req.body;
+
+  if (secret !== ADMIN_SECRET) {
     return res.status(403).json({ error: "Unauthorized" });
   }
-  const products = readData();
-  const newProduct = { id: Date.now(), ...req.body };
-  products.push(newProduct);
-  writeData(products);
-  res.json(newProduct);
+
+  const products = readProducts();
+  product.id = Date.now().toString();
+  products.push(product);
+  writeProducts(products);
+
+  res.json({ success: true, product });
 });
 
-// ✅ Update product (Admin only)
-app.put("/api/products/:id", (req, res) => {
-  if (req.query.secret !== process.env.ADMIN_SECRET) {
-    return res.status(403).json({ error: "Unauthorized" });
-  }
-  let products = readData();
-  const index = products.findIndex(p => p.id == req.params.id);
-  if (index === -1) return res.status(404).json({ error: "Product not found" });
-  products[index] = { ...products[index], ...req.body };
-  writeData(products);
-  res.json(products[index]);
-});
-
-// ✅ Delete product (Admin only)
+// 3. Delete product (Admin only)
 app.delete("/api/products/:id", (req, res) => {
-  if (req.query.secret !== process.env.ADMIN_SECRET) {
+  const secret = req.headers["x-admin-secret"];
+  if (secret !== ADMIN_SECRET) {
     return res.status(403).json({ error: "Unauthorized" });
   }
-  let products = readData();
-  products = products.filter(p => p.id != req.params.id);
-  writeData(products);
+
+  const products = readProducts();
+  const filtered = products.filter(p => p.id !== req.params.id);
+  writeProducts(filtered);
+
   res.json({ success: true });
 });
 
-// ✅ Start server
+// Health check
+app.get("/", (req, res) => {
+  res.send("✅ Herbal Backend is running!");
+});
+
+// Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
