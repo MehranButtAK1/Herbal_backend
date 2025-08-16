@@ -1,11 +1,1 @@
-{
-  "products": [
-    {
-      "id": 1,
-      "name": "Herbal Tea",
-      "category": "Tea",
-      "price": 200,
-      "image": "tea.jpg"
-    }
-  ]
-}
+[]
