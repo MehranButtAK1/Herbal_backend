@@ -7,7 +7,10 @@ const PORT = process.env.PORT || 8080;
 const DATA_FILE = "./products.json";
 
 app.use(cors());
-app.use(express.json());
+
+// JSON aur form-data dono ke liye limit set
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // Helper: read products
 function readProducts() {
@@ -56,7 +59,7 @@ app.delete("/products/:id", (req, res) => {
   res.json({ success: true });
 });
 
-// Update product (optional feature)
+// Update product
 app.put("/products/:id", (req, res) => {
   let products = readProducts();
   const id = parseInt(req.params.id, 10);
