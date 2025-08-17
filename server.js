@@ -1,54 +1,66 @@
 const express = require("express");
 const fs = require("fs");
-const path = require("path");
 const cors = require("cors");
-
 const app = express();
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 5000;
 
-// Middleware
 app.use(cors());
-app.use(express.json({ limit: "50mb" }));
+app.use(express.json());
 
-// Data file path
-const dataFile = path.join(__dirname, "data.json");
+const DATA_FILE = "./products.json";
 
-// Read products
+// Helper: Read products
 function readProducts() {
-  try {
-    const data = fs.readFileSync(dataFile, "utf-8");
-    return JSON.parse(data);
-  } catch (err) {
-    return [];
-  }
+  if (!fs.existsSync(DATA_FILE)) return [];
+  const data = fs.readFileSync(DATA_FILE, "utf8");
+  return JSON.parse(data || "[]");
 }
 
-// Write products
+// Helper: Write products
 function writeProducts(products) {
-  fs.writeFileSync(dataFile, JSON.stringify(products, null, 2), "utf-8");
+  fs.writeFileSync(DATA_FILE, JSON.stringify(products, null, 2));
 }
 
-// Root route
-app.get("/", (req, res) => {
-  res.send("✅ Herbal Backend is running!");
-});
-
-// Get all products
+// ✅ Get all products
 app.get("/products", (req, res) => {
   const products = readProducts();
   res.json(products);
 });
 
-// Add a new product
+// ✅ Add new product
 app.post("/products", (req, res) => {
   const products = readProducts();
-  const newProduct = req.body;
+  const newProduct = { id: Date.now().toString(), ...req.body };
   products.push(newProduct);
   writeProducts(products);
-  res.json({ message: "Product added successfully!", products });
+  res.json(newProduct);
 });
 
-// Start server
+// ✅ Update product
+app.put("/products/:id", (req, res) => {
+  const products = readProducts();
+  const idx = products.findIndex((p) => p.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: "Product not found" });
+
+  products[idx] = { ...products[idx], ...req.body };
+  writeProducts(products);
+  res.json(products[idx]);
+});
+
+// ✅ Delete product
+app.delete("/products/:id", (req, res) => {
+  let products = readProducts();
+  const newProducts = products.filter((p) => p.id !== req.params.id);
+
+  if (products.length === newProducts.length) {
+    return res.status(404).json({ error: "Product not found" });
+  }
+
+  writeProducts(newProducts);
+  res.json({ success: true });
+});
+
+// ✅ Run server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
