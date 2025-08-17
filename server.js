@@ -1,66 +1,76 @@
-const express = require("express");
-const fs = require("fs");
-const cors = require("cors");
+import express from "express";
+import fs from "fs";
+import cors from "cors";
+
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8080;
+const DATA_FILE = "./products.json";
 
 app.use(cors());
 app.use(express.json());
 
-const DATA_FILE = "./products.json";
-
-// Helper: Read products
+// Helper: read products
 function readProducts() {
-  if (!fs.existsSync(DATA_FILE)) return [];
-  const data = fs.readFileSync(DATA_FILE, "utf8");
-  return JSON.parse(data || "[]");
+  if (!fs.existsSync(DATA_FILE)) {
+    fs.writeFileSync(DATA_FILE, "[]");
+  }
+  return JSON.parse(fs.readFileSync(DATA_FILE));
 }
 
-// Helper: Write products
+// Helper: write products
 function writeProducts(products) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(products, null, 2));
 }
 
-// ✅ Get all products
-app.get("/products", (req, res) => {
-  const products = readProducts();
-  res.json(products);
+// Default route
+app.get("/", (req, res) => {
+  res.send("✅ Herbal Backend is running. Use /products");
 });
 
-// ✅ Add new product
+// Get all products
+app.get("/products", (req, res) => {
+  res.json(readProducts());
+});
+
+// Add product
 app.post("/products", (req, res) => {
   const products = readProducts();
-  const newProduct = { id: Date.now().toString(), ...req.body };
+  const newProduct = { id: Date.now(), ...req.body };
   products.push(newProduct);
   writeProducts(products);
   res.json(newProduct);
 });
 
-// ✅ Update product
-app.put("/products/:id", (req, res) => {
-  const products = readProducts();
-  const idx = products.findIndex((p) => p.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: "Product not found" });
-
-  products[idx] = { ...products[idx], ...req.body };
-  writeProducts(products);
-  res.json(products[idx]);
-});
-
-// ✅ Delete product
+// Delete product
 app.delete("/products/:id", (req, res) => {
   let products = readProducts();
-  const newProducts = products.filter((p) => p.id !== req.params.id);
+  const id = parseInt(req.params.id, 10);
+  const initialLength = products.length;
+  products = products.filter((p) => p.id !== id);
 
-  if (products.length === newProducts.length) {
+  if (products.length === initialLength) {
     return res.status(404).json({ error: "Product not found" });
   }
 
-  writeProducts(newProducts);
+  writeProducts(products);
   res.json({ success: true });
 });
 
-// ✅ Run server
+// Update product (optional feature)
+app.put("/products/:id", (req, res) => {
+  let products = readProducts();
+  const id = parseInt(req.params.id, 10);
+  const index = products.findIndex((p) => p.id === id);
+
+  if (index === -1) {
+    return res.status(404).json({ error: "Product not found" });
+  }
+
+  products[index] = { ...products[index], ...req.body };
+  writeProducts(products);
+  res.json(products[index]);
+});
+
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
