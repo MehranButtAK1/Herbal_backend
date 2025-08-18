@@ -8,7 +8,9 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 8080;
 const DATA_FILE = "./products.json";
-const ADMIN_SECRET = process.env.ADMIN_SECRET || "ButtBoss";
+
+// 🔑 Admin password (env se ya default "ButtBoss")
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "ButtBoss";
 
 app.use(cors());
 app.use(express.json({ limit: "10mb" }));
@@ -27,26 +29,26 @@ function writeProducts(products) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(products, null, 2));
 }
 
-// Middleware: check admin auth
-function checkAdmin(req, res, next) {
-  const secret = req.headers["x-admin-secret"];
-  if (secret !== ADMIN_SECRET) {
-    return res.status(403).json({ error: "Unauthorized" });
-  }
-  next();
-}
-
-// Default route
+// ✅ Default route
 app.get("/", (req, res) => {
   res.send("✅ Herbal Backend is running. Use /products");
 });
 
-// Public: Get all products
+// ✅ Get all products
 app.get("/products", (req, res) => {
   res.json(readProducts());
 });
 
-// Admin: Add product
+// 🔒 Middleware for admin routes
+function checkAdmin(req, res, next) {
+  const password = req.headers["x-admin-password"];
+  if (password === ADMIN_PASSWORD) {
+    return next();
+  }
+  return res.status(403).json({ error: "Unauthorized: Invalid admin password" });
+}
+
+// ✅ Add product (Admin only)
 app.post("/products", checkAdmin, (req, res) => {
   const products = readProducts();
   const newProduct = { id: Date.now(), ...req.body };
@@ -55,7 +57,7 @@ app.post("/products", checkAdmin, (req, res) => {
   res.json(newProduct);
 });
 
-// Admin: Delete product
+// ✅ Delete product (Admin only)
 app.delete("/products/:id", checkAdmin, (req, res) => {
   let products = readProducts();
   const id = parseInt(req.params.id, 10);
@@ -70,7 +72,7 @@ app.delete("/products/:id", checkAdmin, (req, res) => {
   res.json({ success: true });
 });
 
-// Admin: Update product
+// ✅ Update product (Admin only)
 app.put("/products/:id", checkAdmin, (req, res) => {
   let products = readProducts();
   const id = parseInt(req.params.id, 10);
@@ -85,6 +87,7 @@ app.put("/products/:id", checkAdmin, (req, res) => {
   res.json(products[index]);
 });
 
+// ✅ Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
