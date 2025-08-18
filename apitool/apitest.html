@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Herbal API Testing Tool</title>
+  <style>
+    body {
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      background: linear-gradient(to right, #1c1c1c, #3a3a3a);
+      color: #f5f5f5;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      background: #2ecc71;
+      padding: 20px;
+      text-align: center;
+      color: white;
+      font-size: 24px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 30px auto;
+      background: #2a2a2a;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.5);
+    }
+
+    h2 {
+      margin-top: 0;
+      color: #2ecc71;
+      border-bottom: 2px solid #2ecc71;
+      padding-bottom: 8px;
+    }
+
+    label {
+      font-weight: bold;
+      display: block;
+      margin: 10px 0 5px;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border-radius: 8px;
+      border: 1px solid #444;
+      background: #1c1c1c;
+      color: #f5f5f5;
+      font-size: 14px;
+    }
+
+    button {
+      background: #2ecc71;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      margin-right: 10px;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background: #27ae60;
+    }
+
+    .output {
+      background: #111;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 20px;
+      max-height: 400px;
+      overflow-y: auto;
+      font-family: monospace;
+      white-space: pre-wrap;
+      border: 1px solid #333;
+    }
+  </style>
+</head>
+<body>
+  <header>🌿 Herbal API Testing Tool</header>
+
+  <div class="container">
+    <h2>🔑 API Authentication</h2>
+    <label for="password">Admin Password:</label>
+    <input type="password" id="password" placeholder="Enter Admin Password (default: ButtBoss)" />
+
+    <h2>📡 API Request</h2>
+    <label for="method">Method:</label>
+    <select id="method">
+      <option value="GET">GET (Fetch Products)</option>
+      <option value="POST">POST (Add Product)</option>
+      <option value="PUT">PUT (Update Product)</option>
+      <option value="DELETE">DELETE (Delete Product)</option>
+    </select>
+
+    <label for="productId">Product ID (for PUT/DELETE):</label>
+    <input type="text" id="productId" placeholder="Enter Product ID (for update/delete)" />
+
+    <label for="body">Request Body (JSON):</label>
+    <textarea id="body" rows="6" placeholder='{"name": "Herbal Oil", "category": "Hair Oil", "price": 900, "image": "base64..."}'></textarea>
+
+    <button onclick="sendRequest()">🚀 Send Request</button>
+
+    <h2>📊 Response</h2>
+    <div class="output" id="output">No request yet...</div>
+  </div>
+
+  <script>
+    const BASE_URL = "https://herbalbackend-production.up.railway.app/products";
+
+    async function sendRequest() {
+      const method = document.getElementById("method").value;
+      const productId = document.getElementById("productId").value.trim();
+      const bodyInput = document.getElementById("body").value.trim();
+      const password = document.getElementById("password").value;
+
+      let url = BASE_URL;
+      if ((method === "PUT" || method === "DELETE") && productId) {
+        url += "/" + productId;
+      }
+
+      let options = {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+        }
+      };
+
+      // Admin routes need password
+      if (method !== "GET") {
+        options.headers["x-admin-password"] = password;
+      }
+
+      if (bodyInput && (method === "POST" || method === "PUT")) {
+        try {
+          options.body = JSON.stringify(JSON.parse(bodyInput));
+        } catch (e) {
+          document.getElementById("output").innerText = "❌ Invalid JSON body!";
+          return;
+        }
+      }
+
+      try {
+        const res = await fetch(url, options);
+        const data = await res.json();
+        document.getElementById("output").innerText = JSON.stringify(data, null, 2);
+      } catch (error) {
+        document.getElementById("output").innerText = "❌ Error: " + error.message;
+      }
+    }
+  </script>
+</body>
+</html>
