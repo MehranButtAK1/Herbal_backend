@@ -1,16 +1,8 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
-const connectDB = async (uri) => {
-  try {
-    await mongoose.connect(uri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-    console.log("✅ MongoDB connected successfully");
-  } catch (err) {
-    console.error("❌ MongoDB connection error:", err.message);
-    throw err;
-  }
-};
-
-module.exports = connectDB;
+export async function connectDB(uri) {
+  if (!uri) throw new Error("MONGO_URI missing");
+  mongoose.set("strictQuery", true);
+  await mongoose.connect(uri, { autoIndex: true });
+  console.log("✅ MongoDB connected");
+}
