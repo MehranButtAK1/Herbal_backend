@@ -1,61 +1,19 @@
-const router = require("express").Router();
-const jwt = require("jsonwebtoken");
-const User = require("../models/User");
+import { Router } from "express";
+import bcrypt from "bcryptjs";
 
-// helper: sign token with id + role + email
-function signUserToken(user) {
-  return jwt.sign(
-    { id: user._id, role: user.role, email: user.email },
-    process.env.JWT_SECRET,
-    { expiresIn: "7d" }
-  );
-}
+const router = Router();
 
-// Register (creates normal user)
-router.post("/register", async (req, res, next) => {
-  try {
-    const { name, email, password } = req.body || {};
-    if (!name || !email || !password)
-      return res.status(400).json({ error: "Missing fields" });
+/** POST /auth/login  {password} -> {ok:true} (no session; just a check) */
+router.post("/login", async (req, res) => {
+  const pwd = String(req.body?.password || "");
+  const plain = process.env.ADMIN_PASSWORD || "";
+  const hash = process.env.ADMIN_PASSWORD_HASH || "";
 
-    // optional: block registering with reserved admin email
-    if (process.env.ADMIN_EMAIL && email.toLowerCase() === process.env.ADMIN_EMAIL.toLowerCase()) {
-      return res.status(403).json({ error: "This email is reserved for admin" });
-    }
+  let ok = false;
+  if (hash) ok = await bcrypt.compare(pwd, hash);
+  else if (plain) ok = pwd && pwd === plain;
 
-    const exists = await User.findOne({ email });
-    if (exists) return res.status(409).json({ error: "Email in use" });
-
-    // role will default to "user" in schema
-    const user = await User.create({ name, email, password });
-
-    const token = signUserToken(user);
-    res.json({
-      user: { id: user._id, name: user.name, email: user.email, role: user.role },
-      token,
-    });
-  } catch (e) {
-    next(e);
-  }
+  return ok ? res.json({ ok: true }) : res.status(401).json({ ok: false });
 });
 
-// Login (works for both user & admin)
-// NOTE: Only the single admin (ADMIN_EMAIL) will have admin permissions via middleware.
-router.post("/login", async (req, res, next) => {
-  try {
-    const { email, password } = req.body || {};
-    const user = await User.findOne({ email });
-    if (!user || !(await user.comparePassword(password)))
-      return res.status(401).json({ error: "Invalid credentials" });
-
-    const token = signUserToken(user);
-    res.json({
-      user: { id: user._id, name: user.name, email: user.email, role: user.role },
-      token,
-    });
-  } catch (e) {
-    next(e);
-  }
-});
-
-module.exports = router;
+export default router;
