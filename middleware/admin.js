@@ -1,10 +1,24 @@
-// Only allow the single admin whose email matches ADMIN_EMAIL (and role must be 'admin')
-module.exports = function requireAdmin(req, res, next) {
-  const envEmail = (process.env.ADMIN_EMAIL || "").toLowerCase();
-  const userEmail = (req.user?.email || "").toLowerCase();
+import bcrypt from "bcryptjs";
 
-  if (req.user?.role === "admin" && envEmail && userEmail === envEmail) {
-    return next();
+/**
+ * Admin check via header: x-admin-password
+ * Supports either:
+ *  - ADMIN_PASSWORD (plain text)
+ *  - ADMIN_PASSWORD_HASH (bcrypt hash)
+ */
+export default async function admin(req, res, next) {
+  try {
+    const clientPwd = req.header("x-admin-password") || "";
+    const plain = process.env.ADMIN_PASSWORD || "";
+    const hash = process.env.ADMIN_PASSWORD_HASH || "";
+
+    let ok = false;
+    if (hash) ok = await bcrypt.compare(clientPwd, hash);
+    else if (plain) ok = clientPwd && clientPwd === plain;
+
+    if (!ok) return res.status(401).json({ error: "Unauthorized" });
+    next();
+  } catch (e) {
+    next(e);
   }
-  return res.status(403).json({ error: "Admin only" });
-};
+}
