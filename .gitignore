@@ -1,8 +1,9 @@
-# Node modules
-node_modules/
-
-# Environment files
+# env / secrets
 .env
 
-# Logs
-*.log
+# Node
+node_modules
+npm-debug.log*
+.yarn*
+.pnpm-debug.log*
+.DS_Store
