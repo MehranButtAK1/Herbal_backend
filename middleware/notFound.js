@@ -1,3 +1,3 @@
-module.exports = function notFound(req, res) {
+export function notFound(_req, res) {
   res.status(404).json({ error: "Route not found" });
-};
+}
