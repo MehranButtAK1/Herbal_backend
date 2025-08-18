@@ -1,9 +1,7 @@
 {
   "name": "herbal-backend",
   "version": "1.0.0",
-  "description": "Herbal Store Backend with Express and Admin Authentication",
   "main": "server.js",
-  "type": "module",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js"
@@ -11,21 +9,7 @@
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
-    "express": "^4.18.2"
-  },
-  "devDependencies": {
-    "nodemon": "^3.1.0"
-  },
-  "engines": {
-    "node": ">=18.x"
-  },
-  "keywords": [
-    "express",
-    "backend",
-    "herbal",
-    "store",
-    "api"
-  ],
-  "author": "MehranButt(RPh)",
-  "license": "MIT"
+    "express": "^4.19.2",
+    "mongoose": "^7.6.3"
+  }
 }
