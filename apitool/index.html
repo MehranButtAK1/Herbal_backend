@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Herbal API Tool</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <header>
+      <h1>🌿 Herbal API Tool</h1>
+      <p>Secure & Professional API Testing Panel</p>
+    </header>
+
+    <main>
+      <div class="form-group">
+        <label for="url">API Endpoint</label>
+        <input type="text" id="url" placeholder="https://your-backend.com/products">
+      </div>
+
+      <div class="form-group inline">
+        <div>
+          <label for="method">Method</label>
+          <select id="method">
+            <option>GET</option>
+            <option>POST</option>
+            <option>PUT</option>
+            <option>DELETE</option>
+          </select>
+        </div>
+        <div>
+          <label for="adminPassword">Admin Password</label>
+          <input type="password" id="adminPassword" placeholder="Required for POST/PUT/DELETE">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="bodyInput">Request Body (JSON)</label>
+        <textarea id="bodyInput" placeholder='{"name":"Product","category":"Herbal","price":123,"image":"base64/url"}'></textarea>
+      </div>
+
+      <button id="sendBtn">🚀 Send Request</button>
+
+      <section class="response-section">
+        <h2>Response</h2>
+        <pre id="responseOutput">Waiting for request...</pre>
+      </section>
+    </main>
+
+    <footer>
+      <p>🔒 Secured API Tool - Powered by Herbal Backend</p>
+    </footer>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
