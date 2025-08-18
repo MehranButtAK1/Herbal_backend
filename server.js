@@ -1,79 +1,55 @@
 require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
-const path = require("path");
+const cors = require("cors");
 
 const app = express();
 
 // Middleware
+app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, "public")));
 
-// Connect MongoDB
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => console.log("✅ MongoDB connected"))
-.catch(err => console.error("❌ MongoDB connection error:", err));
+// MongoDB connect
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => console.log("✅ MongoDB Connected"))
+  .catch((err) => console.error("❌ MongoDB Error:", err));
 
-// Product Schema
-const productSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  category: { type: String, required: true },
-  price: { type: Number, required: true },
-  image: String,
-}, { timestamps: true });
+// Test Route
+app.get("/", (req, res) => {
+  res.send("🚀 Herbal Store Backend is Running...");
+});
 
-const Product = mongoose.model("Product", productSchema);
+// Example Products Route
+const ProductSchema = new mongoose.Schema({
+  name: String,
+  price: Number,
+  description: String,
+});
 
-// ✅ Get all products
-app.get("/products", async (req, res) => {
+const Product = mongoose.model("Product", ProductSchema);
+
+app.get("/api/products", async (req, res) => {
   try {
     const products = await Product.find();
     res.json(products);
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch products" });
+    res.status(500).json({ error: err.message });
   }
 });
 
-// ✅ Add new product (admin panel se)
-app.post("/products", async (req, res) => {
+app.post("/api/products", async (req, res) => {
   try {
     const newProduct = new Product(req.body);
     await newProduct.save();
-    res.json({ message: "Product added successfully", product: newProduct });
+    res.json(newProduct);
   } catch (err) {
-    res.status(500).json({ error: "Failed to add product" });
+    res.status(500).json({ error: err.message });
   }
 });
 
-// ✅ Delete product
-app.delete("/products/:id", async (req, res) => {
-  try {
-    await Product.findByIdAndDelete(req.params.id);
-    res.json({ message: "Product deleted successfully" });
-  } catch (err) {
-    res.status(500).json({ error: "Failed to delete product" });
-  }
-});
-
-// ✅ Update product
-app.put("/products/:id", async (req, res) => {
-  try {
-    const updatedProduct = await Product.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true }
-    );
-    res.json({ message: "Product updated successfully", product: updatedProduct });
-  } catch (err) {
-    res.status(500).json({ error: "Failed to update product" });
-  }
-});
-
-// Server Start
+// Start Server
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
-  console.log(`🚀 Server running at http://localhost:${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
