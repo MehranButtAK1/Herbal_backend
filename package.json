@@ -2,6 +2,7 @@
   "name": "herbal-backend-secure",
   "version": "1.0.0",
   "main": "server.js",
+  "type": "module", 
   "scripts": {
     "start": "node server.js",
     "dev": "NODE_ENV=development nodemon server.js"
